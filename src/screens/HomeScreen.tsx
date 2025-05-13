@@ -9,6 +9,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         title="Timer demo"
         onPress={() => navigation.navigate('TimerDemo')}
       />
+      <Button
+        title="UseIdle"
+        onPress={() => navigation.navigate('UseIdle')}
+      />
     </View>
   );
 }

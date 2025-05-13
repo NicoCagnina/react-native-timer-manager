@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useEffect, useState } from 'react';
+import { useTimerContext } from '../providers/TimerProvider';
 
 type RootStackParamList = {
   Home: undefined;
@@ -11,17 +13,28 @@ type TimerDemoScreenProps = {
 };
 
 const TimerDemoScreen = ({ navigation }: TimerDemoScreenProps) => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Pantalla de Detalles</Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.buttonText}>Volver</Text>
-      </TouchableOpacity>
-    </View>
-  );
+const [seconds, setSeconds] = useState(0);
+  const registerCallback = useTimerContext();
+
+  useEffect(() => {
+      // Register a callback that will be called every second
+      registerCallback('timer-example', (ticks) => {
+          setSeconds(ticks);
+      });
+
+      return () => {
+          registerCallback('timer-example');
+      };
+  }, [registerCallback]);
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>Timer Example</Text>
+            <Text style={styles.text}>
+                Seconds elapsed: <Text style={styles.mono}>{seconds}</Text>
+            </Text>
+        </View>
+    );
 }
 
 export default TimerDemoScreen
@@ -46,5 +59,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  text: {
+    fontSize: 16,
+  },
+  mono: {
+    fontFamily: 'monospace',
   },
 }); 
