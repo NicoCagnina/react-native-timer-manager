@@ -30,7 +30,7 @@ export const IdleProvider: React.FC<IdleProviderProps> = ({
   const [idleTime, setIdleTime] = useState(0);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [appState, setAppState] = useState(AppState.currentState);
-  const registerCallback = useTimerContext();
+  const {registerCallback} = useTimerContext();
 
   const resetIdle = useCallback(() => {
     setIsIdle(false);

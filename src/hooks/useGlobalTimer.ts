@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 
 const ONE_SECOND = 1000;
 
-// Create singleton variables outside the hook
 let globalTimer: ReturnType<typeof setInterval> | null = null;
 let globalTicks = 0;
 
@@ -23,4 +22,4 @@ export const useGlobalTimer = (onTick: (ticks: number) => void) => {
 			}
 		};
 	}, [onTick]);
-}; 
+};

@@ -1,17 +1,12 @@
-import { StyleSheet, Text, View, TouchableOpacity, Button } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { StyleSheet, View, Button } from 'react-native';
 import { HomeScreenProps } from './types';
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <View style={styles.container}>
       <Button
-        title="Timer demo"
-        onPress={() => navigation.navigate('TimerDemo')}
-      />
-      <Button
-        title="UseIdle"
-        onPress={() => navigation.navigate('UseIdle')}
+        title="Timers Overview"
+        onPress={() => navigation.navigate('TimersOverview')}
       />
     </View>
   );

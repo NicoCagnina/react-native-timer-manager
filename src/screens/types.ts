@@ -4,16 +4,13 @@ type RootStackParamList = {
   Home: undefined;
   TimerDemo: undefined;
   UseIdle: undefined;
+  TimersOverview: undefined;
 };
 
 export type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
-export type TimerDemoScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'TimerDemo'>;
-};
-
-export type UseIdleScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'UseIdle'>;
+export type TimersOverviewScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'TimersOverview'>;
 };
