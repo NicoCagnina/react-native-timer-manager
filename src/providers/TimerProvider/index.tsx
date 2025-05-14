@@ -6,13 +6,7 @@ import React, {
   useState,
 } from "react";
 
-type Timer = {
-  id: string;
-  tag?: string;
-  callback: () => void;
-  tickCount: number;
-  active: boolean;
-};
+type Timer = TimerSubscription;
 
 type TimerOptions = {
   id: string;
@@ -20,10 +14,18 @@ type TimerOptions = {
   callback: () => void;
 };
 
-type TimerContextValue = {
+export type TimerSubscription = {
+  id: string;
+  tag?: string;
+  callback: () => void;
+  tickCount: number;
+  active: boolean;
+};
+
+export type TimerContextValue = {
   registerTimer: (options: TimerOptions) => () => void;
-  getTimers: () => Timer[];
-  getActiveTimers: () => Timer[];
+  getTimers: () => TimerSubscription[];
+  getActiveTimers: () => TimerSubscription[];
   pauseAll: () => void;
   resumeAll: () => void;
   subscribe: (callback: () => void) => { id: string };

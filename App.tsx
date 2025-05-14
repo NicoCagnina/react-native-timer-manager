@@ -1,10 +1,11 @@
+import React from 'react';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "./src/screens/HomeScreen";
-
 import AppProvider from "./src/providers/AppProvider";
-import { TimersOverviewWithIntervals } from "./src/screens/TimersOverviewWithIntervals";
 import TimersOverviewScreen from "./src/screens/TimersOverviewScreen";
+import TimersOverviewWithIntervalsScreen from "./src/screens/TimersOverviewWithIntervals";
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -24,7 +25,7 @@ export default function App() {
           />
           <Stack.Screen
             name="TimersOverviewWithIntervals"
-            component={TimersOverviewWithIntervals}
+            component={TimersOverviewWithIntervalsScreen}
             options={{ title: "Timers Overview with Intervals" }}
           />
         </Stack.Navigator>

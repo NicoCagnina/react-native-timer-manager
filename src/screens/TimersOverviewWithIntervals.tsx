@@ -2,9 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
+  Button,
+  FlatList,
   TouchableOpacity,
-  ScrollView,
-  StyleSheet,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -14,14 +14,7 @@ interface TimerState {
   isActive: boolean;
 }
 
-interface PerformanceMetrics {
-  frameTime: number;
-  cpuUsage: number;
-  memoryUsage: number;
-  activeTimers: number;
-}
-
-export const TimersOverviewWithIntervals = () => {
+const TimersOverviewWithIntervals = () => {
   const [timers, setTimers] = useState<Record<string, TimerState>>({});
   const intervalsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const navigation = useNavigation();
@@ -57,11 +50,8 @@ export const TimersOverviewWithIntervals = () => {
   };
 
   const removeTimer = (id: string) => {
-    if (intervalsRef.current[id]) {
-      clearInterval(intervalsRef.current[id]);
-      delete intervalsRef.current[id];
-    }
-
+    clearInterval(intervalsRef.current[id]);
+    delete intervalsRef.current[id];
     setTimers((prev) => {
       const newTimers = { ...prev };
       delete newTimers[id];
@@ -91,133 +81,71 @@ export const TimersOverviewWithIntervals = () => {
 
   useEffect(() => {
     return () => {
-      Object.values(intervalsRef.current).forEach((interval) =>
-        clearInterval(interval)
-      );
+      Object.values(intervalsRef.current).forEach(clearInterval);
     };
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Timers Overview (Using setInterval)</Text>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={addTimer}>
-          <Text style={styles.buttonText}>Add Timer</Text>
-        </TouchableOpacity>
+  const timerList = Object.values(timers);
 
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
+  return (
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
+        ⏱️ Interval-based Timers
+      </Text>
+
+      <Text>Total timers: {timerList.length}</Text>
+      <Text>
+        Active timers: {timerList.filter((t) => t.isActive).length}
+      </Text>
+
+      <View style={{ flexDirection: "row", gap: 10, marginVertical: 10 }}>
+        <Button title="➕ Add Timer" onPress={addTimer} />
+        <Button
+          title="🔙 Back to Optimized"
           onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.buttonText}>Back to Optimized Version</Text>
-        </TouchableOpacity>
+        />
       </View>
 
-      <ScrollView style={styles.timersContainer}>
-        {Object.values(timers).map((timer) => (
-          <View key={timer.id} style={styles.timerCard}>
-            <Text style={styles.timerTitle}>Timer {timer.id}</Text>
-            <Text style={styles.timerText}>Ticks: {timer.ticks}</Text>
-            <Text style={styles.timerText}>
-              Status: {timer.isActive ? "Active" : "Paused"}
-            </Text>
+      <FlatList
+        data={timerList}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <Text style={{ marginTop: 10 }}>
+            No timers currently running.
+          </Text>
+        }
+        renderItem={({ item }) => (
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderColor: "#ccc",
+              paddingVertical: 6,
+            }}
+          >
+            <Text style={{ fontWeight: "bold" }}>{item.id}</Text>
+            <Text>Ticks: {item.ticks}</Text>
+            <Text>Status: {item.isActive ? "✅ Running" : "⏸️ Paused"}</Text>
 
-            <View style={styles.timerButtons}>
-              <TouchableOpacity
-                style={[styles.timerButton, styles.secondaryButton]}
-                onPress={() => toggleTimer(timer.id)}
-              >
-                <Text style={styles.buttonText}>
-                  {timer.isActive ? "Pause" : "Resume"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.timerButton, styles.secondaryButton]}
-                onPress={() => resetTimer(timer.id)}
-              >
-                <Text style={styles.buttonText}>Reset</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.timerButton, styles.dangerButton]}
-                onPress={() => removeTimer(timer.id)}
-              >
-                <Text style={styles.buttonText}>Remove</Text>
-              </TouchableOpacity>
+            <View style={{ flexDirection: "row", marginTop: 8, gap: 6 }}>
+              <Button
+                title={item.isActive ? "Pause" : "Resume"}
+                onPress={() => toggleTimer(item.id)}
+              />
+              <Button
+                title="Reset"
+                onPress={() => resetTimer(item.id)}
+              />
+              <Button
+                title="❌ Remove"
+                color="#FF3B30"
+                onPress={() => removeTimer(item.id)}
+              />
             </View>
           </View>
-        ))}
-      </ScrollView>
+        )}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  secondaryButton: {
-    backgroundColor: "#5856D6",
-  },
-  dangerButton: {
-    backgroundColor: "#FF3B30",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  timersContainer: {
-    flex: 1,
-  },
-  timerCard: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  timerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  timerText: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  timerButtons: {
-    flexDirection: "row",
-    marginTop: 12,
-  },
-  timerButton: {
-    padding: 8,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-});
+export default TimersOverviewWithIntervals

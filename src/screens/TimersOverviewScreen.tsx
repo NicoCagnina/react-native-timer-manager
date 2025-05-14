@@ -1,26 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, Button, FlatList } from "react-native";
 import { useTimerContext } from "../providers/TimerProvider";
+import { useTimer } from "../hooks/useGlobalTimer";
 
 const TimersOverviewScreen = () => {
   const { getTimers, getActiveTimers, pauseAll, resumeAll, registerTimer } =
     useTimerContext();
 
-  const [frameTime, setFrameTime] = useState(0);
-  const [prevTime, setPrevTime] = useState(Date.now());
   const [timers, setTimers] = useState(getTimers());
   const [paused, setPaused] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      setFrameTime(now - prevTime);
-      setPrevTime(now);
-      setTimers(getTimers());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [prevTime]);
+  useTimer(() => {
+    setTimers(getTimers());
+  });
 
   const togglePause = () => {
     if (paused) {
@@ -35,7 +28,6 @@ const TimersOverviewScreen = () => {
     const id = `timer-${Math.random().toString(36).substring(2, 8)}`;
     const tags = ["network", "fetch", "debug"];
     const tag = tags[Math.floor(Math.random() * tags.length)];
-    const interval = 1000;
 
     let ticks = 0;
 
@@ -46,6 +38,12 @@ const TimersOverviewScreen = () => {
         ticks++;
       },
     });
+  };
+
+  const createHundredTimers = () => {
+    for (let i = 0; i < 100; i++) {
+      createRandomTimer();
+    }
   };
 
   const uniqueTags = Array.from(
@@ -61,16 +59,16 @@ const TimersOverviewScreen = () => {
         🕒 Timer Debug Panel
       </Text>
 
-      <Text>Frame time: {frameTime}ms</Text>
       <Text>Total timers: {timers.length}</Text>
       <Text>Active timers: {getActiveTimers().length}</Text>
 
-      <View style={{ flexDirection: "row", gap: 10, marginVertical: 10 }}>
-        <Button
-          title={paused ? "▶️ Resume All" : "⏸️ Pause All"}
-          onPress={togglePause}
-        />
+      <Button
+        title={paused ? "▶️ Resume All" : "⏸️ Pause All"}
+        onPress={togglePause}
+      />
+      <View style={{ flexDirection: "row", marginVertical: 10 }}>
         <Button title="➕ Add Random Timer" onPress={createRandomTimer} />
+        <Button title="➕ Add 100 Random Timers" onPress={createHundredTimers} />
       </View>
 
       <View

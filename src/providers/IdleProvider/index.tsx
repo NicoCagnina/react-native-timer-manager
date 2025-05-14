@@ -64,7 +64,7 @@ export const IdleProvider: React.FC<IdleProviderProps> = ({
         const now = Date.now();
         const timeSinceLastActivity = now - lastActivity;
 
-        if (timeSinceLastActivity >= timeout) {
+        if (timeSinceLastActivity >= timeout && timeout !== 0) {
           if (!isIdle) setIsIdle(true);
           setIdleTime(Math.floor(timeSinceLastActivity / 1000));
         }
