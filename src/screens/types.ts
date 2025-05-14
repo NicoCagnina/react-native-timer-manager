@@ -2,9 +2,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 type RootStackParamList = {
   Home: undefined;
-  TimerDemo: undefined;
-  UseIdle: undefined;
   TimersOverview: undefined;
+  TimersOverviewWithIntervals: undefined;
 };
 
 export type HomeScreenProps = {

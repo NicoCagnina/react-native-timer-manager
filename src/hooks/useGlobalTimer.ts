@@ -1,25 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useTimerContext } from '../providers/TimerProvider';
 
-const ONE_SECOND = 1000;
+export const useTimer = (callback: () => void) => {
+  const { subscribe, unsubscribe } = useTimerContext();
+  const callbackRef = useRef(callback);
 
-let globalTimer: ReturnType<typeof setInterval> | null = null;
-let globalTicks = 0;
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
-export const useGlobalTimer = (onTick: (ticks: number) => void) => {
-	useEffect(() => {
-		if (!globalTimer) {
-			globalTimer = setInterval(() => {
-				globalTicks += 1;
-				onTick(globalTicks);
-			}, ONE_SECOND);
-		}
-
-		return () => {
-			if (globalTimer) {
-				clearInterval(globalTimer);
-				globalTimer = null;
-				globalTicks = 0;
-			}
-		};
-	}, [onTick]);
+  useEffect(() => {
+    const handle = subscribe(() => callbackRef.current());
+    return () => unsubscribe(handle.id);
+  }, []);
 };

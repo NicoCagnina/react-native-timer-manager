@@ -1,130 +1,118 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Button, TouchableOpacity, ScrollView } from 'react-native';
-import { useTimerContext } from '../providers/TimerProvider';
-import { useIdle } from '../providers/IdleProvider';
-import { TimerState } from '../providers/TimerProvider';
-
-function randomId() {
-  return 'timer-' + Math.random().toString(36).substring(2, 10);
-}
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList } from "react-native";
+import { useTimerContext } from "../providers/TimerProvider";
 
 const TimersOverviewScreen = () => {
-  const { getAllTimers, pauseTimer, resumeTimer, resetTimer, registerCallback, removeTimer } = useTimerContext();
-  const { isIdle, idleTime } = useIdle();
-  const timers = getAllTimers();
+  const { getTimers, getActiveTimers, pauseAll, resumeAll, registerTimer } =
+    useTimerContext();
 
-  const handleCreateTimer = () => {
-    const id = randomId();
-    registerCallback(id, () => {});
+  const [frameTime, setFrameTime] = useState(0);
+  const [prevTime, setPrevTime] = useState(Date.now());
+  const [timers, setTimers] = useState(getTimers());
+  const [paused, setPaused] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setFrameTime(now - prevTime);
+      setPrevTime(now);
+      setTimers(getTimers());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [prevTime]);
+
+  const togglePause = () => {
+    if (paused) {
+      resumeAll();
+    } else {
+      pauseAll();
+    }
+    setPaused(!paused);
   };
 
-  const renderTimer = ({ item }: { item: TimerState }) => (
-    <View style={styles.timerRow}>
-      <Text style={styles.timerDot}>{item.isActive ? '●' : '○'}</Text>
-      <Text style={styles.timerId}>{item.id}:</Text>
-      <Text style={styles.timerTicks}>{item.ticks}</Text>
-			<View style={{ flexDirection: 'row'}}>
-			<TouchableOpacity
-        style={styles.actionButton}
-        onPress={() => (item.isActive ? pauseTimer(item.id) : resumeTimer(item.id))}
-      >
-        <Text style={styles.actionButtonText}>{item.isActive ? 'Pause' : 'Resume'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.actionButton}
-        onPress={() => resetTimer(item.id)}
-      >
-        <Text style={styles.actionButtonText}>Reset</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.actionButton, { backgroundColor: '#d32f2f' }]}
-        onPress={() => removeTimer(item.id)}
-      >
-        <Text style={styles.actionButtonText}>Delete</Text>
-      </TouchableOpacity>
-			</View>
-    </View>
+  const createRandomTimer = () => {
+    const id = `timer-${Math.random().toString(36).substring(2, 8)}`;
+    const tags = ["network", "fetch", "debug"];
+    const tag = tags[Math.floor(Math.random() * tags.length)];
+    const interval = 1000;
+
+    let ticks = 0;
+
+    registerTimer({
+      id,
+      tag,
+      callback: () => {
+        ticks++;
+      },
+    });
+  };
+
+  const uniqueTags = Array.from(
+    new Set(timers.map((t) => t.tag).filter(Boolean))
   );
+  const filteredTimers = tagFilter
+    ? timers.filter((t) => t.tag === tagFilter)
+    : timers;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Timers Overview</Text>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Global Timers</Text>
-        <Button title="Create random timer" onPress={handleCreateTimer} />
-        <FlatList
-          data={timers}
-          keyExtractor={item => item.id}
-          renderItem={renderTimer}
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
+        🕒 Timer Debug Panel
+      </Text>
+
+      <Text>Frame time: {frameTime}ms</Text>
+      <Text>Total timers: {timers.length}</Text>
+      <Text>Active timers: {getActiveTimers().length}</Text>
+
+      <View style={{ flexDirection: "row", gap: 10, marginVertical: 10 }}>
+        <Button
+          title={paused ? "▶️ Resume All" : "⏸️ Pause All"}
+          onPress={togglePause}
         />
+        <Button title="➕ Add Random Timer" onPress={createRandomTimer} />
       </View>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Idle Tracker</Text>
-        <Text style={styles.idleText}>Idle: {isIdle ? 'Yes' : 'No'}</Text>
-        <Text style={styles.idleText}>Seconds being idle: {idleTime}</Text>
+
+      <View
+        style={{ flexDirection: "row", flexWrap: "wrap", marginVertical: 10 }}
+      >
+        <Button title="All" onPress={() => setTagFilter(null)} />
+        {uniqueTags.map((tag) => (
+          <View key={tag} style={{ marginHorizontal: 4 }}>
+            <Button
+              title={tag as string}
+              onPress={() => setTagFilter(tag as string)}
+            />
+          </View>
+        ))}
       </View>
+
+      <FlatList
+        data={filteredTimers}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderColor: "#ccc",
+              paddingVertical: 6,
+            }}
+          >
+            <Text style={{ fontWeight: "bold" }}>
+              {item.id} {item.tag ? `(${item.tag})` : ""}
+            </Text>
+            <Text>Ticks: {item.tickCount}</Text>
+            <Text>Status: {item.active ? "✅ Running" : "⏸️ Paused"}</Text>
+          </View>
+        )}
+        ListEmptyComponent={
+          <Text style={{ marginTop: 10 }}>
+            No timers found with current filter.
+          </Text>
+        }
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: 32,
-    padding: 16,
-    borderRadius: 10,
-    backgroundColor: '#f2f2f2',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  timerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  timerDot: {
-    fontSize: 14,
-    color: '#4caf50',
-    marginRight: 8,
-  },
-  timerId: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  timerTicks: {
-    fontSize: 16,
-    color: '#333',
-    marginRight: 8,
-  },
-  actionButton: {
-    backgroundColor: '#1976d2',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginLeft: 6,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 12,
-  },
-  idleText: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-});
-
-export default TimersOverviewScreen; 
+export default TimersOverviewScreen;

@@ -1,172 +1,122 @@
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { useGlobalTimer } from "../../hooks/useGlobalTimer";
 
-export interface TimerState {
+type Timer = {
   id: string;
-  ticks: number;
-  isActive: boolean;
-}
+  tag?: string;
+  callback: () => void;
+  tickCount: number;
+  active: boolean;
+};
 
-interface TimerContextType {
-  registerCallback: (id: string, callback?: (_: number) => void) => void;
-  getTimerState: (id: string) => TimerState | undefined;
-  getAllTimers: () => TimerState[];
-  resetTimer: (id: string) => void;
-  pauseTimer: (id: string) => void;
-  resumeTimer: (id: string) => void;
-  removeTimer: (id: string) => void;
-}
+type TimerOptions = {
+  id: string;
+  tag?: string;
+  callback: () => void;
+};
 
-export const TimerContext = createContext<TimerContextType | null>(null);
+type TimerContextValue = {
+  registerTimer: (options: TimerOptions) => () => void;
+  getTimers: () => Timer[];
+  getActiveTimers: () => Timer[];
+  pauseAll: () => void;
+  resumeAll: () => void;
+  subscribe: (callback: () => void) => { id: string };
+  unsubscribe: (id: string) => void;
+};
 
-export const TimerProvider = ({ children }: { children: React.ReactNode }) => {
-  const callbacks = useRef<Record<string, (_: number) => void>>({});
-  const [timerStates, setTimerStates] = useState<Record<string, TimerState>>(
-    {}
-  );
+const TimerContext = createContext<TimerContextValue | null>(null);
 
-  const timerStatesRef = useRef(timerStates);
+export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const timersRef = useRef<Map<string, Timer>>(new Map());
+  const subscribersRef = useRef<Map<string, () => void>>(new Map());
+  const [paused, setPaused] = useState(false);
+
+  // master interval
   useEffect(() => {
-    timerStatesRef.current = timerStates;
-  }, [timerStates]);
+    const interval = setInterval(() => {
+      if (paused) return;
 
-  const onTick = useCallback((ticks: number) => {
-    Object.entries(callbacks.current).forEach(([id, callback]) => {
-      if (timerStatesRef.current[id]?.isActive !== false) {
-        callback(ticks);
-        setTimerStates(prev => ({
-          ...prev,
-          [id]: {
-            ...prev[id],
-            ticks: prev[id]?.ticks !== undefined ? prev[id].ticks + 1 : 1,
-            isActive: true,
-          },
-        }));
-      }
-    });
-  }, []);
+      timersRef.current.forEach((timer) => {
+        if (timer.active) {
+          timer.tickCount++;
+          timer.callback();
+        }
+      });
 
-  const registerCallback = useCallback(
-    (id: string, callback?: (_: number) => void) => {
-      if (callback) {
-        callbacks.current[id] = callback;
-        setTimerStates((prev) => ({
-          ...prev,
-          [id]: {
-            id,
-            ticks: prev[id]?.ticks || 0,
-            isActive: true,
-          },
-        }));
-      } else {
-        delete callbacks.current[id];
-        setTimerStates((prev) => {
-          const newStates = { ...prev };
-          delete newStates[id];
-          return newStates;
-        });
-      }
-    },
-    []
-  );
+      subscribersRef.current.forEach((callback) => {
+        callback();
+      });
+    }, 1000);
 
-  useEffect(() => {
-    registerCallback("global-timer", () => {});
-  }, [registerCallback]);
+    return () => clearInterval(interval);
+  }, [paused]);
 
-  const getTimerState = useCallback(
-    (id: string) => {
-      return timerStates[id];
-    },
-    [timerStates]
-  );
+  const registerTimer = ({ id, tag, callback }: TimerOptions) => {
+    const timer: Timer = {
+      id,
+      tag,
+      callback,
+      tickCount: 0,
+      active: true,
+    };
 
-  const getAllTimers = useCallback(() => {
-    return Object.values(timerStates);
-  }, [timerStates]);
+    timersRef.current.set(id, timer);
 
-  const resetTimer = useCallback((id: string) => {
-    setTimerStates((prev) =>
-      prev[id]
-        ? {
-            ...prev,
-            [id]: {
-              ...prev[id],
-              ticks: 0,
-            },
-          }
-        : prev
-    );
-  }, []);
+    return () => {
+      timersRef.current.delete(id);
+    };
+  };
 
-  const pauseTimer = useCallback((id: string) => {
-    setTimerStates((prev) =>
-      prev[id]
-        ? {
-            ...prev,
-            [id]: {
-              ...prev[id],
-              isActive: false,
-            },
-          }
-        : prev
-    );
-  }, []);
+  const pauseAll = () => {
+    setPaused(true);
+    timersRef.current.forEach((t) => (t.active = false));
+  };
 
-  const resumeTimer = useCallback((id: string) => {
-    setTimerStates((prev) =>
-      prev[id]
-        ? {
-            ...prev,
-            [id]: {
-              ...prev[id],
-              isActive: true,
-            },
-          }
-        : prev
-    );
-  }, []);
+  const resumeAll = () => {
+    setPaused(false);
+    timersRef.current.forEach((t) => (t.active = true));
+  };
 
-  const removeTimer = useCallback((id: string) => {
-    delete callbacks.current[id];
-    setTimerStates((prev) => {
-      const newStates = { ...prev };
-      delete newStates[id];
-      return newStates;
-    });
-  }, []);
+  const getTimers = () => Array.from(timersRef.current.values());
+  const getActiveTimers = () => getTimers().filter((t) => t.active);
 
-  useGlobalTimer(onTick);
+  const subscribe = (callback: () => void) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    subscribersRef.current.set(id, callback);
+    return { id };
+  };
+
+  const unsubscribe = (id: string) => {
+    subscribersRef.current.delete(id);
+  };
 
   return (
     <TimerContext.Provider
       value={{
-        registerCallback,
-        getTimerState,
-        getAllTimers,
-        resetTimer,
-        pauseTimer,
-        resumeTimer,
-        removeTimer,
+        registerTimer,
+        getTimers,
+        getActiveTimers,
+        pauseAll,
+        resumeAll,
+        subscribe,
+        unsubscribe,
       }}
-      data-timer-consumer
     >
       {children}
     </TimerContext.Provider>
   );
 };
 
-export const useTimerContext = () => {
+export const useTimerContext = (): TimerContextValue => {
   const context = useContext(TimerContext);
-  if (!context) {
-    throw new Error("useTimerContext must be used within a TimerProvider");
-  }
+  if (!context) throw new Error("TimerContext not found");
   return context;
 };
